@@ -6,8 +6,7 @@ st.set_page_config(page_title="Wellness Tourism Package Predictor", layout="cent
 st.title("Wellness Tourism Package Predictor")
 st.write("Predict whether a customer is likely to purchase the Wellness Tourism Package.")
 
-model = joblib.load("outputs/best_model.joblib")
-
+model = joblib.load("best_model.joblib")
 with st.form("customer_form"):
     age = st.number_input("Age", 18, 100, 35)
     contact = st.selectbox("Type of Contact", ["Self Enquiry", "Company Invited"])
