@@ -29,11 +29,11 @@ jobs:
 
       - name: Data preparation
         run: |
-          python data_prep.py
+          python src/data_prep.py
 
       - name: Train and evaluate model
         run: |
-          python train_model.py
+          python src/train_model.py
 
       - name: Upload dataset files to Hugging Face
         env:
@@ -45,26 +45,13 @@ jobs:
           api = HfApi(token="${{ secrets.HF_TOKEN }}")
           repo_id = "mosmed/tourism-package-prediction"
 
-          api.upload_file(
-              path_or_fileobj="tourism.csv",
-              path_in_repo="tourism.csv",
-              repo_id=repo_id,
-              repo_type="dataset"
-          )
-
-          api.upload_file(
-              path_or_fileobj="train.csv",
-              path_in_repo="train.csv",
-              repo_id=repo_id,
-              repo_type="dataset"
-          )
-
-          api.upload_file(
-              path_or_fileobj="test.csv",
-              path_in_repo="test.csv",
-              repo_id=repo_id,
-              repo_type="dataset"
-          )
+          for filename in ["tourism.csv", "train.csv", "test.csv"]:
+              api.upload_file(
+                  path_or_fileobj=f"data/{filename}",
+                  path_in_repo=filename,
+                  repo_id=repo_id,
+                  repo_type="dataset"
+              )
           PY
 
       - name: Upload best model to Hugging Face Model Hub
@@ -78,14 +65,14 @@ jobs:
           repo_id = "mosmed/tourism-package-prediction-model"
 
           api.upload_file(
-              path_or_fileobj="best_model.joblib",
+              path_or_fileobj="outputs/best_model.joblib",
               path_in_repo="best_model.joblib",
               repo_id=repo_id,
               repo_type="model"
           )
 
           api.upload_file(
-              path_or_fileobj="model_results.json",
+              path_or_fileobj="outputs/model_results.json",
               path_in_repo="model_results.json",
               repo_id=repo_id,
               repo_type="model"
@@ -102,27 +89,26 @@ jobs:
           api = HfApi(token="${{ secrets.HF_TOKEN }}")
           repo_id = "mosmed/tourism-package-prediction-app"
 
-          files = [
-              "app.py",
-              "Dockerfile",
-              "requirements.txt",
-              "best_model.joblib"
-          ]
+          files = {
+              "app.py": "app.py",
+              "Dockerfile": "Dockerfile",
+              "requirements.txt": "requirements.txt",
+              "outputs/best_model.joblib": "best_model.joblib"
+          }
 
-          for file in files:
+          for local_file, space_file in files.items():
               api.upload_file(
-                  path_or_fileobj=file,
-                  path_in_repo=file,
+                  path_or_fileobj=local_file,
+                  path_in_repo=space_file,
                   repo_id=repo_id,
                   repo_type="space"
               )
           PY
 
-      - name: Commit generated files back to GitHub
+      - name: Commit generated outputs back to GitHub
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add train.csv test.csv best_model.joblib model_results.json
-          git commit -m "Update MLOps pipeline outputs" || echo "No changes to commit"
+          git add data/train.csv data/test.csv outputs/best_model.joblib outputs/model_results.json
+          git commit -m "Update MLOps pipeline outputs [skip ci]" || echo "No changes to commit"
           git push
